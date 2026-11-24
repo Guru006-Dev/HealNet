@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { ExperienceCard } from '../components/ExperienceCard';
 import { QRCodeSVG } from 'qrcode.react';
+import axios from 'axios';
 
 function ProfilePage() {
     const { username } = useParams();
@@ -19,6 +20,39 @@ function ProfilePage() {
     const { user: currentUser } = useSelector((state) => state.auth);
 
     const [showQRModal, setShowQRModal] = useState(false);
+    const [emergencyToken, setEmergencyToken] = useState(null);
+    const [qrError, setQrError] = useState('');
+
+    const authConfig = { headers: { Authorization: `Bearer ${currentUser?.token}` } };
+
+    // The QR code carries a random, revocable token, never the user id.
+    useEffect(() => {
+        if (!showQRModal || !currentUser?.token) return;
+        setQrError('');
+        axios.get('/api/users/emergency-token', authConfig)
+            .then((res) => setEmergencyToken(res.data.token))
+            .catch(() => setQrError('Could not load your Medical ID link.'));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showQRModal, currentUser?.token]);
+
+    const regenerateToken = async () => {
+        try {
+            const res = await axios.post('/api/users/emergency-token/rotate', {}, authConfig);
+            setEmergencyToken(res.data.token);
+        } catch {
+            setQrError('Could not regenerate the link.');
+        }
+    };
+
+    const revokeToken = async () => {
+        try {
+            await axios.delete('/api/users/emergency-token', authConfig);
+            setEmergencyToken(null);
+            setShowQRModal(false);
+        } catch {
+            setQrError('Could not revoke the link.');
+        }
+    };
 
     useEffect(() => {
         if (username) {
@@ -76,7 +110,7 @@ function ProfilePage() {
         { label: 'Trust Points', value: user.credentialPoints || 0, icon: <Award size={18} />, color: '#8b5cf6' },
     ];
 
-    const emergencyUrl = `${window.location.origin}/emergency/${user._id}`;
+    const emergencyUrl = emergencyToken ? `${window.location.origin}/emergency/${emergencyToken}` : '';
 
     return (
         <AppLayout>
@@ -323,7 +357,13 @@ function ProfilePage() {
 
                         <div style={{ padding: 40, textAlign: 'center' }}>
                             <div style={{ background: 'white', padding: 20, borderRadius: 20, display: 'inline-block', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: 24 }}>
-                                <QRCodeSVG value={emergencyUrl} size={200} level="H" includeMargin={true} />
+                                {emergencyUrl ? (
+                                    <QRCodeSVG value={emergencyUrl} size={200} level="H" includeMargin={true} />
+                                ) : (
+                                    <div style={{ width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                                        {qrError || 'Loading...'}
+                                    </div>
+                                )}
                             </div>
 
                             <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{user.name}</h4>
@@ -331,6 +371,14 @@ function ProfilePage() {
                                 First responders can scan this code to see your allergies, conditions, and emergency contact details.
                             </p>
 
+                            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                                <button onClick={regenerateToken} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1.5px solid #e2e8f0', background: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                                    Regenerate (old QR stops working)
+                                </button>
+                                <button onClick={revokeToken} style={{ flex: 1, padding: '10px', borderRadius: 12, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                                    Revoke link
+                                </button>
+                            </div>
                             <div style={{ display: 'flex', gap: 12 }}>
                                 <button onClick={() => window.print()} style={{ flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid #e2e8f0', background: '#f8fafc', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                                     <Download size={16} /> Save Image

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { randomBytes } from 'crypto';
 import User from '../models/User.js';
 import Experience from '../models/Experience.js';
 import HelpfulMark from '../models/HelpfulMark.js';
@@ -179,16 +180,88 @@ export const deleteHealthLog = async (req: any, res: Response): Promise<void> =>
     }
 };
 
+// @desc    Public Medical ID lookup, by random QR token (never by user id)
+// @route   GET /api/users/emergency-info/:token
+// @access  Public
 export const getPublicEmergencyInfo = async (req: Request, res: Response) => {
     try {
-        const user = await User.findById(req.params.id).select('name phone healthProfile email'); // added email for visibility
+        const token = String(req.params.token || '');
+        if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) {
+            res.status(404).json({ message: 'Medical ID not found' });
+            return;
+        }
+
+        const user = await User.findOne({ emergencyToken: token }).select('name phone healthProfile');
+        if (!user) {
+            res.status(404).json({ message: 'Medical ID not found' });
+            return;
+        }
+
+        // Only the fields a first responder needs. No email, no lifestyle
+        // data, no surgeries, no logs and no internal ids.
+        const hp = user.healthProfile || {};
+        res.status(200).json({
+            name: user.name,
+            phone: user.phone,
+            healthProfile: {
+                allergies: hp.allergies || [],
+                chronicConditions: hp.chronicConditions || [],
+                biologicalSex: hp.biologicalSex,
+                ageGroup: hp.ageGroup
+            }
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Get the current user's Medical ID token (creates one if missing)
+// @route   GET /api/users/emergency-token
+// @access  Private
+export const getEmergencyToken = async (req: any, res: Response): Promise<void> => {
+    try {
+        const user = await User.findById(req.user.id).select('+emergencyToken');
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;
         }
-        res.status(200).json(user);
+        if (!user.emergencyToken) {
+            user.emergencyToken = randomBytes(24).toString('base64url');
+            await user.save();
+        }
+        res.status(200).json({ token: user.emergencyToken });
     } catch (error: any) {
-        res.status(400).json({ message: 'Invalid ID or user not found' });
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Rotate the Medical ID token. The old QR code stops working.
+// @route   POST /api/users/emergency-token/rotate
+// @access  Private
+export const rotateEmergencyToken = async (req: any, res: Response): Promise<void> => {
+    try {
+        const user = await User.findById(req.user.id).select('+emergencyToken');
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+        user.emergencyToken = randomBytes(24).toString('base64url');
+        await user.save();
+        res.status(200).json({ token: user.emergencyToken });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Revoke the Medical ID token. The QR code stops working.
+// @route   DELETE /api/users/emergency-token
+// @access  Private
+export const revokeEmergencyToken = async (req: any, res: Response): Promise<void> => {
+    try {
+        await User.updateOne({ _id: req.user.id }, { $unset: { emergencyToken: 1 } });
+        res.status(200).json({ message: 'Medical ID link revoked' });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
     }
 };
 

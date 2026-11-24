@@ -3,9 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import User from '../models/User.js';
+import { getJwtSecret } from '../config/jwt.js';
 
 const generateToken = (id: string, isAnonymous: boolean) => {
-    return jwt.sign({ id, isAnonymous }, process.env.JWT_SECRET || 'secret', {
+    return jwt.sign({ id, isAnonymous }, getJwtSecret(), {
         expiresIn: '30d',
     });
 };
@@ -15,7 +16,10 @@ const generateToken = (id: string, isAnonymous: boolean) => {
 // @access  Public
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, email, phone, password, role } = req.body;
+        // `role` is intentionally NOT read from the request: anyone could
+        // otherwise register themselves as an admin. Admins are promoted
+        // directly in the database.
+        const { name, email, phone, password } = req.body;
 
         if (!name || (!email && !phone) || !password) {
             res.status(400).json({ message: 'Please add all fields' });
@@ -50,7 +54,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
             email,
             phone,
             password: hashedPassword,
-            role: role || 'user',
+            role: 'user',
         });
 
         if (user) {
@@ -96,7 +100,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
                 res.json({
                     _id: user.id,
                     mfaRequired: true,
-                    tempToken: jwt.sign({ id: user.id, mfaPending: true }, process.env.JWT_SECRET || 'secret', { expiresIn: '5m' })
+                    tempToken: jwt.sign({ id: user.id, mfaPending: true }, getJwtSecret(), { expiresIn: '5m' })
                 });
                 return;
             }
@@ -131,7 +135,11 @@ export const verifyMFALogin = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        const decoded: any = jwt.verify(tempToken, process.env.JWT_SECRET || 'secret');
+        const decoded: any = jwt.verify(tempToken, getJwtSecret());
+        if (!decoded.mfaPending) {
+            res.status(401).json({ message: 'Invalid MFA challenge token' });
+            return;
+        }
         const user = await User.findById(decoded.id).select('+mfaSecret +backupCodes');
 
         if (!user || !user.mfaEnabled || !user.mfaSecret) {

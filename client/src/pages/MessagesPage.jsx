@@ -422,7 +422,7 @@ function MessagesPage() {
                             <div className="hn-chat-messages">
                                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'var(--surface)', borderRadius: 10, fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-                                        <Shield size={10} /> END-TO-END ENCRYPTED
+                                        <Shield size={10} /> PRIVATE CONVERSATION
                                     </div>
                                 </div>
 

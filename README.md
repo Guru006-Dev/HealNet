@@ -4,6 +4,8 @@
 
 **Live Demo**: [https://healnet-henna.vercel.app](https://healnet-henna.vercel.app)
 
+> **Credit:** This repository is based on [HealNet](https://github.com/VIJAYADITYARV/HealNet) by VIJAYADITYARV and contributors (original history preserved). The live demo above is the original project's deployment. This copy adds security hardening; see the commit history on `security/phase-1-hardening`.
+
 HealNet is a premium, high-fidelity MERN application designed to bridge the gap between complex medical data and patient understanding. By leveraging advanced **Generative AI (Gemini 1.5 Pro)** and a state-of-the-art **Neural Surface UI**, HealNet empowers users to own their health journey with confidence, clarity, and community support.
 
 ---
@@ -12,13 +14,13 @@ HealNet is a premium, high-fidelity MERN application designed to bridge the gap 
 
 ### 🧠 1. AI Intelligence Lab
 The central nervous system of HealNet. It transforms raw medical complexity into actionable patient knowledge.
-- **Medical ID Core**: Encrypted, high-fidelity emergency medical profiles accessible via unique secure QR codes.
+- **Medical ID Core**: Emergency medical profile shared through a QR code that carries a random, revocable token. The public page shows only critical fields (allergies, conditions, contact).
 - **Report Intelligence**: Decipher medical jargon from uploaded lab reports into plain, supportive English.
 - **Outcome Radar**: Predictive analysis of treatment success based on real-world community datasets.
 - **Live Community Trends**: Real-time ticker tracking regional health alerts and treatment breakthroughs.
 
 ### 🛡️ 2. The Medical Vault (Health Profile)
-A military-grade dashboard for personal health record management.
+A dashboard for personal health record management, protected by authentication (JWT, optional TOTP MFA).
 - **Dynamic CRUD Intelligence**: Secure management of medical logs, surgeries, and prescriptions.
 - **Baseline Context**: Intelligent capture of chronic history, allergies, and daily check-ins.
 - **Neural Pulse**: Visualizing health trends and vitals through interactive, high-contrast charts.
@@ -27,7 +29,7 @@ A military-grade dashboard for personal health record management.
 Healing is better together. We've built a zero-noise, high-trust network.
 - **Verified Journeys**: Badge-verified recovery stories that increase trust and clinical validity.
 - **Anonymous Perspectives**: Share sensitive health updates with complete privacy toggles.
-- **Smart DM System**: End-to-end encrypted messaging with AI-powered conversation context and suggestions.
+- **Smart DM System**: Direct messaging between users with AI-powered conversation context and suggestions. Messages are protected in transit (TLS) but are not end-to-end encrypted.
 
 ---
 
