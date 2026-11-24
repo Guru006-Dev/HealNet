@@ -116,7 +116,7 @@ const EmergencyViewPage = () => {
 
                     <div style={{ textAlign: 'center', marginTop: 10 }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: '0.75rem' }}>
-                            <Shield size={14} /> Encrypted by HealNet Security Protocols
+                            <Shield size={14} /> Shared by the owner via a private link
                         </div>
                     </div>
                 </div>

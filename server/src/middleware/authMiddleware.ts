@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { getJwtSecret } from '../config/jwt.js';
 
 interface AuthRequest extends Request {
     user?: any;
@@ -8,34 +9,40 @@ interface AuthRequest extends Request {
 
 interface DecodedToken {
     id: string;
+    mfaPending?: boolean;
 }
 
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    let token: string | undefined;
+    const header = req.headers.authorization;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            // Get token from header
-            token = req.headers.authorization.split(' ')[1];
+    if (!header || !header.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Not authorized, no token' });
+    }
 
-            if (!token) {
-                return res.status(401).json({ message: 'Not authorized, no token' });
-            }
+    const token = header.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: 'Not authorized, no token' });
+    }
 
-            // Verify token
-            const secret = process.env.JWT_SECRET || 'secret';
-            const decoded = jwt.verify(token, secret) as DecodedToken;
+    try {
+        const decoded = jwt.verify(token, getJwtSecret()) as DecodedToken;
 
-            // Get user from the token
-            req.user = await User.findById(decoded.id).select('-password');
-
-            next();
-        } catch (error) {
-            console.error(error);
-            res.status(401).json({ message: 'Not authorized' });
+        // The short-lived token issued after the password step of an MFA login
+        // only proves the password. It must never work as a session token.
+        if (decoded.mfaPending) {
+            return res.status(401).json({ message: 'MFA verification required' });
         }
-    } else {
-        res.status(401).json({ message: 'Not authorized, no token' });
+
+        const user = await User.findById(decoded.id).select('-password');
+        if (!user) {
+            return res.status(401).json({ message: 'Not authorized, user no longer exists' });
+        }
+
+        req.user = user;
+        next();
+    } catch (error: any) {
+        console.error('[protect]', error.message);
+        res.status(401).json({ message: 'Not authorized' });
     }
 };
 
@@ -43,6 +50,6 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
     if (req.user && req.user.role === 'admin') {
         next();
     } else {
-        res.status(401).json({ message: 'Not authorized as an admin' });
+        res.status(403).json({ message: 'Admin access required' });
     }
 };

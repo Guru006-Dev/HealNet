@@ -268,7 +268,7 @@ const HealthProfilePage = () => {
                                         <AlertTriangle size={24} color="#fbbf24" />
                                     </div>
                                     <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, letterSpacing: '-0.01em' }}>Emergency Medical ID</h4>
-                                    <p style={{ margin: '6px 0 20px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>Generate a unique encryption-backed QR code for critical care responders.</p>
+                                    <p style={{ margin: '6px 0 20px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>Generate a unique, revocable QR code for critical care responders.</p>
                                     <button
                                         onClick={() => window.open(`/profile/${user.username}`, '_blank')}
                                         style={{ background: 'white', color: '#1e1b4b', border: 'none', padding: '12px 20px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, transition: 'transform 0.2s', width: '100%', justifyContent: 'center' }}

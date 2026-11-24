@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/db.js';
+import { getJwtSecret } from './config/jwt.js';
 import authRoutes from './routes/authRoutes.js';
 import experienceRoutes from './routes/experienceRoutes.js';
 import queryRoutes from './routes/queryRoutes.js';
@@ -25,6 +26,9 @@ import likeRoutes from './routes/likeRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 
 dotenv.config();
+
+// Refuse to start without a real JWT secret (no insecure fallback).
+getJwtSecret();
 
 // Global Exception Handlers for better logging
 process.on('uncaughtException', (err) => {
@@ -66,32 +70,53 @@ app.use((req, res, next) => {
 // ── 2. Security headers ────────────────────────────────────────
 app.use(helmet({ xssFilter: false }));
 
-// ── 4. Rate Limiting (Disabled for Dev) ───────────────────────────
-/*
+// ── 4. Rate Limiting ──────────────────────────────────────────────
+// Behind a proxy (Render/Vercel) the real client IP is in X-Forwarded-For.
+app.set('trust proxy', 1);
+
+const rateLimitMessage = (message: string) => ({ message });
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5000, 
-  message: 'Too many requests from this IP, please try again after 15 minutes'
+  limit: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage('Too many requests from this IP, please try again after 15 minutes')
 });
 
+// Brute-force protection for login, register and MFA verification.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: 'Too many login/register attempts, please try again after 15 minutes'
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage('Too many login/register attempts, please try again after 15 minutes')
 });
 
-const queryLimiter = rateLimit({
+// Protects the paid Gemini / Whisper endpoints from cost abuse.
+const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
-  message: 'Too many AI requests, please try again later'
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage('Too many AI requests, please try again later')
+});
+
+// The public emergency page is unauthenticated, so limit token guessing.
+const emergencyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage('Too many requests, please try again later')
 });
 
 app.use('/api', limiter);
 app.use('/api/auth', authLimiter);
-app.use('/api/query', queryLimiter);
-app.use('/api/ai/query', queryLimiter);
-app.use('/api/voice', queryLimiter);
-*/
+app.use('/api/query', aiLimiter);
+app.use('/api/ai', aiLimiter);
+app.use('/api/voice', aiLimiter);
+app.use('/api/users/emergency-info', emergencyLimiter);
 
 // ── 5. Routes ──────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);

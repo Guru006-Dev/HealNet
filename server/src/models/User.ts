@@ -34,6 +34,7 @@ export interface IUser extends Document {
         date?: Date;
         notes?: string;
     }[];
+    emergencyToken?: string;
     mfaEnabled: boolean;
     mfaSecret?: string;
     backupCodes?: string[];
@@ -73,6 +74,9 @@ const UserSchema: Schema = new Schema({
         date: { type: Date, default: Date.now },
         notes: { type: String }
     }],
+    // Random, revocable token used in the Medical ID QR code. Never selected
+    // by default, so it can't leak through ordinary user queries.
+    emergencyToken: { type: String, unique: true, sparse: true, select: false },
     mfaEnabled: { type: Boolean, default: false },
     mfaSecret: { type: String, select: false },
     backupCodes: [{ type: String, select: false }],
