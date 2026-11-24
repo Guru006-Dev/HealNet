@@ -4,6 +4,8 @@
 
 **Live Demo**: [https://healnet-henna.vercel.app](https://healnet-henna.vercel.app)
 
+> **Credit:** This repository is based on [HealNet](https://github.com/VIJAYADITYARV/HealNet) by VIJAYADITYARV and contributors (original history preserved). The live demo above is the original project's deployment. This copy adds security hardening; see the commit history on `security/phase-1-hardening`.
+
 HealNet is a premium, high-fidelity MERN application designed to bridge the gap between complex medical data and patient understanding. By leveraging advanced **Generative AI (Gemini 1.5 Pro)** and a state-of-the-art **Neural Surface UI**, HealNet empowers users to own their health journey with confidence, clarity, and community support.
 
 ---
