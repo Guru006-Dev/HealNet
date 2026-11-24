@@ -125,7 +125,7 @@ export const updateHospital = async (req: Request, res: Response): Promise<void>
 export const getHospitalInsights = async (req: Request, res: Response): Promise<void> => {
     try {
         let hospital;
-        const { id } = req.params;
+        const id = String(req.params.id);
 
         // Try to find by ID first (if valid ObjectId)
         if (id.match(/^[0-9a-fA-F]{24}$/)) {

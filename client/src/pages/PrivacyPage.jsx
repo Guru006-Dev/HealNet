@@ -20,7 +20,7 @@ const SECTIONS = [
     {
         icon: Lock,
         title: 'Encryption & Security',
-        desc: 'Data is encrypted in transit (TLS). Stored data relies on the database provider's encryption at rest. Authentication uses signed JWT bearer tokens with optional authenticator-app MFA. Passwords are hashed with bcrypt.',
+        desc: 'Data is encrypted in transit (TLS). Stored data relies on encryption at rest from the database provider. Authentication uses signed JWT bearer tokens with optional authenticator-app MFA. Passwords are hashed with bcrypt.',
         color: '#7c3aed',
     },
     {
